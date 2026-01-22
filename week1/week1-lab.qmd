@@ -1,0 +1,111 @@
+---
+title: "Stressors for Bee Colonies"
+author: "Melannie Moreno Rolón"
+date: last-modified
+format: html
+---
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(janitor)
+library(here)
+library(lubridate)
+
+```
+
+
+```{r}
+# Read in the data
+stressor <- read_csv(here::here("week1", "data", "stressor.csv"))
+stressor
+```
+
+
+Remove all special characters in the state and stressor column observations
+str_replace_all inside the new column (mutate)
+
+```{r}
+# Remove all special characters in the state column
+stressor$state <- str_replace_all(stressor$state, "[^[:alnum:]]", "")
+
+```
+
+```{r}
+#Remove special characters in the state column
+stressor$stressor <- str_replace_all(stressor$stressor, "[^[:alnum:]]", "")
+```
+
+
+Convert all column names from CamelCase to snake_case (for ease of readability and to adhere to the Tidyverse style guide recommendation)
+clean_names() from janitor
+
+```{r}
+stressor <- stressor %>% janitor::clean_names()
+```
+
+
+Check the class of the year variable. Update the data type if necessary.
+
+```{r}
+class(stressor$year)
+
+stressor <- stressor %>% 
+  mutate(year = as.integer(year))
+```
+
+
+Pivot your dataframe to make it tidy data. Remember, in tidy data:
+pivot_longer(cols = starts_with("q"), names_to = "quarter", values_to = "stress_level")
+
+```{r}
+stressor_long <- stressor %>%  
+  pivot_longer(cols = january_march:october_december, names_to = "quarter_months", values_to = "pct_stress")
+```
+
+Create a new column named quarter that contains the quarter number that the observation took place in
+lubridate::quarter(date)
+
+```{r}
+bee_stress_quarter <- stressor_long %>% 
+  mutate(quarter = case_when(
+    quarter_months == "january_march" ~1,
+    quarter_months == "april_june" ~2,
+    quarter_months == "july_september" ~3,
+    quarter_months == "october_december" ~4)
+    )
+```
+
+
+Remove any rows where the state is “United States” or “Other States”
+filter(!state %in% c())
+
+```{r}
+bee_stress_states <- bee_stress_quarter %>% 
+  filter(!state %in% c("UnitedStates", "OtherStates"))
+```
+
+Filter to select a single stressor and single state that interests you!
+
+```{r}
+bee_stress_nj <- bee_stress_states %>% 
+  filter(stressor == "Varroamites", state == "NewJersey")
+```
+
+Group by year and quarter to calculate the average stress level
+
+```{r}
+avg_bee_stress_nj <- bee_stress_nj %>% 
+  group_by(year, quarter) %>% 
+  summarise(avg_stress = mean(pct_stress)) 
+```
+
+Create a data viz of your choice!
+
+```{r}
+ggplot(avg_bee_stress_nj, aes(x = year, y = avg_stress, 
+                              color = "")) +
+  geom_bar(stat = "identity") +
+  
+```
+
