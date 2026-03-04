@@ -1,0 +1,49 @@
+---
+title: "week4-lab"
+format: html
+date: last-modified
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+# Load libraries
+library(tidyverse)
+```
+
+
+```{r}
+#  Load packages
+url <- "https://github.com/EDS-240-Data-Viz/fundamental-charts-lab-data/raw/refs/heads/main/global_waste/country_level_data.csv"
+
+waste <- read_csv(url)
+```
+
+```{r}
+waste_long <- waste %>% 
+  pivot_longer(cols = c(composition_food_organic_waste_percent:composition_yard_garden_green_waste_percent),
+               names_to = "waste_type",
+               values_to = "percent_waste")
+```
+
+
+```{r}
+
+my_labeller <- as_labeller(x(composition_food_organic_waste_percent = "Food Waste", composition_))
+ggplot(data = waste_long, 
+       mapping = aes(x = gdp, y = percent_waste)) +
+  geom_point(alpha = 0.5, na.rm = TRUE) +
+  facet_wrap(~waste_type) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  #scale_x_continuous(labels = scales::) + 
+  labs(title = "Viewing GDP Against Waste Percentage by Waste Type")
+
+```
+
+```{r}
+waste_totals <- waste %>% 
+  mutate(total_waste = rowSums(across(starts_with = special_waste_agricultural_waste_tons_year, 
+                                      total_msw_total_msw_generated_tons_year)))
+```
+

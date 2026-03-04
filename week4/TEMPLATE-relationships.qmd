@@ -33,6 +33,11 @@ library(ggdensity)
 metajam::download_d1_data("https://cn.dataone.org/cn/v2/resolve/https%3A%2F%2Fpasta.lternet.edu%2Fpackage%2Fdata%2Feml%2Fknb-lter-hbr%2F208%2F14%2F024b6acc5cb2e03a14fff5558bbffc0c",
                  path = here::here("week4")) 
 
+stream_chem_all <-
+  list.files(path = "week4/data/", pattern = "*.csv") %>% 
+  map_df(~read_csv(.))
+stream_chem_all
+
 #  ~ NOTE: You should rename the downloaded folder to 'data/' so that it's automatically ignored by your repo's .gitignore! ~
 
 #....................read in downloaded files....................
@@ -40,6 +45,9 @@ stream_chem_all <- metajam::read_d1_files(here::here("week4", "data"))
 
 #........................get the data file.......................
 stream_chem_data <- stream_chem_all$`HubbardBrook_weekly_stream_chemistry_1963-2025.csv`
+
+stream_chem_data <- read_csv(here::here("week4", "data", 
+                                        "HubbardBrook_weekly_stream_chemistry_1963-2025.csv"))
 ```
 
 ## Scatter plots
@@ -51,6 +59,11 @@ stream_chem_data <- stream_chem_all$`HubbardBrook_weekly_stream_chemistry_1963-2
 #| echo: true
 #| warning: false
 #.......................basic scatter plot.......................
+p1 <- stream_chem_data %>% 
+  filter(waterYr == 2024) %>% 
+  ggplot(aes(x = DOC, y = pH)) +
+  geom_point()
+
 ```
 
 ### Alt 1: add a rug plot
@@ -60,7 +73,7 @@ stream_chem_data <- stream_chem_all$`HubbardBrook_weekly_stream_chemistry_1963-2
 #| echo: true
 #| warning: false
 #.......................scatter + rug plot.......................
-p1
+p1 <- p1 + geom_rug()
 ```
 
 ### Alt 2: marginal plot alternatives using `{ggExtra}`
@@ -71,6 +84,7 @@ p1
 #| warning: false
 #................add marginal plots with {ggExtra}...............
 # also try "density", "boxplot"
+ggExtra::ggMarginal(p1, type = "boxplot")
 ```
 
 ### Alt 3: scatter + marginal plot with 2+ groups
@@ -82,12 +96,17 @@ p1
 #............scatter plot with points colored by site............
 p2 <- stream_chem_data |> 
   filter(waterYr == 2024) |> 
-  ggplot(aes(x = DOC, y = pH)) + 
-  geom_point(alpha = 0.5)
+  ggplot(aes(x = DOC, y = pH,
+             colour = site)) + 
+  geom_point(alpha = 0.5) +
+  theme(legend.position = "bottom")
 
 p2
 
 #..................with marginal density plot....................
+ggExtra::ggMarginal(p2, type = "density", 
+           groupFill = TRUE,
+           groupColour = TRUE)
 ```
 
 ## Trend lines
@@ -98,6 +117,12 @@ p2
 #| eval: true
 #| echo: true
 #......................add a smoothed line.......................
+stream_chem_data %>% 
+  filter(waterYr %in% c(2014:2024)) %>% 
+  filter(site == "W5") %>% 
+  ggplot(aes(x = DOC, y = pH)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth()
 ```
 
 ### Line of best fit
@@ -111,7 +136,7 @@ stream_chem_data |>
   filter(site == "W5") |> 
   ggplot(aes(x = DOC, y = pH)) + 
   geom_point(alpha = 0.5) +
-  geom_smooth()
+  geom_smooth(method = "lm", se = FALSE)
 ```
 
 ## Visualizing a third numeric variable
@@ -127,7 +152,8 @@ stream_chem_data |>
 #..........................bubble chart..........................
 stream_chem_data |> 
   filter(waterYr == 2024) |> 
-  ggplot(aes(x = DOC, y = pH)) + 
+  ggplot(aes(x = DOC, y = pH, 
+             colour = site, size = Al_ICP)) + 
   geom_point(alpha = 0.5) +
   labs(x = "DOC (mg/L)", size = "Al (mg/L)", color = "Site")
 ```
@@ -145,6 +171,7 @@ stream_chem_data |>
   filter(waterYr == 2024) |> 
   ggplot(aes(x = DOC, y = pH, color = site, size = Al_ICP)) + 
   geom_point(alpha = 0.5) +
+  scale_size(range = c(1, 10)) +
   labs(x = "DOC (mg/L)", size = "Al (mg/L)", color = "Site")
 
 #...................DON'T scale size by radius...................
@@ -165,8 +192,10 @@ stream_chem_data |>
 #...................color for a third variable...................
 stream_chem_data |> 
   filter(waterYr == 2024) |> 
-  ggplot(aes(x = DOC, y = pH)) + 
+  ggplot(aes(x = DOC, y = pH, 
+             colour = Al_ICP)) + 
   geom_point(alpha = 0.5, size = 2) +
+  scale_color_viridis_c(option = "C") +
   labs(x = "DOC (mg/L)")
 ```
 
@@ -199,6 +228,9 @@ stream_chem_data |>
 #| echo: false
 #| warning: false
 #.....................wayyyy too many points.....................
+ggplot(stream_chem_data, aes(x = SO4,
+                             y = pH)) +
+  geom_point()
 ```
 
 ### Initial strategies
@@ -210,14 +242,15 @@ stream_chem_data |>
 #| layout-ncol: 3
 #................smaller, more transparent points................
 ggplot(stream_chem_data, aes(x = SO4, y = pH)) + 
-  geom_point() 
+  geom_point(size = 0.5, alpha = 0.3) 
 
 #..........................add rug plot..........................
 ggplot(stream_chem_data, aes(x = SO4, y = pH)) + 
-  geom_point(size = 0.5, alpha = 0.3)
+  geom_point(size = 0.5, alpha = 0.3) +
+  geom_rug()
 
 #.........................color by group.........................
-ggplot(stream_chem_data, aes(x = SO4, y = pH)) + 
+ggplot(stream_chem_data, aes(x = SO4, y = pH, color = site)) + 
   geom_point(size = 0.5, alpha = 0.3) 
 ```
 
@@ -231,10 +264,18 @@ ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
 #| warning: false
 #| layout-ncol: 2
 #....................heatmap of 2d bin counts....................
-ggplot(stream_chem_data, aes(x = SO4, y = pH))
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  geom_bin2d() +
+  scale_fill_viridis_c(option = "C")
 
 #..................heatmap with hexagonal bins...................
-ggplot(stream_chem_data, aes(x = SO4, y = pH)) 
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  geom_hex() +
+  scale_fill_viridis_c(option = "C") +
+  guides(fill = guide_colorbar(
+    title = "Count",
+    barwidth = 1, 
+    barheight = 15))
 ```
 
 ### Alt 2: 2d density / contour plots
@@ -248,7 +289,8 @@ ggplot(stream_chem_data, aes(x = SO4, y = pH))
 #| echo: false
 #| warning: false
 #..........................contour plot..........................
-ggplot(stream_chem_data, aes(x = SO4, y = pH))
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  geom_density_2d_filled()
 ```
 
 ### Alt 3: 2d density plots using `{ggdensity}`
@@ -262,5 +304,6 @@ ggplot(stream_chem_data, aes(x = SO4, y = pH))
 #| echo: false
 #| warning: false
 #................2d density plot with {ggdensity}................n. 
-ggplot(stream_chem_data, aes(x = SO4, y = pH)) 
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  ggdensity::geom_hdr()
 ```
